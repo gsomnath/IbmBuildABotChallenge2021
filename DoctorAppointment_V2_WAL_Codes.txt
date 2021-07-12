@@ -1,0 +1,78 @@
+defVar --name patientName --type String --parameter 
+defVar --name email --type String --parameter 
+defVar --name phnNumber --type String --parameter 
+defVar --name dob --type String --value "01-12-2001" --parameter 
+defVar --name gender --type String --parameter 
+defVar --name doctor --type String --parameter 
+defVar --name date --type String --parameter 
+defVar --name slot --type String --parameter 
+defVar --name searchResult --type String
+defVar --name chromeInstance --type String --value chromeInstance
+defVar --name successMsgAptCreated --type String --value "Appointment creates Successfully !!!" --output 
+defVar --name culture --type Language
+defVar --name botEmail --type String --value "testmail4poc1@gmail.com"
+defVar --name botEmailPswd --type String
+defVar --name emailServerConnecttion --type EmailConnection
+defVar --name ToEmail --type List --innertype String --value "[testmail4poc1@gmail.com]"
+defVar --name UUID --type Numeric --value 12345678
+defVar --name myDesktop --type String
+defVar --name currentDateAndTime --type DateTime
+defVar --name executionResult --type Boolean
+defVar --name myCred --type TextFileReader
+defVar --name errorHandlerSubRoutines --type String --value HandleError
+generateRandomNumber --minimum 12345 --maximum 123456781 UUID=value
+getSpecialFolder --folder "Desktop" myDesktop=value
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Log Started !!!" --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "Default" --writeasnewline 
+createLanguage --culture "en-US" culture=value
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Appointment book started for patient ${patientName} for doctor ${doctor} on ${date} at slot ${slot}." --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+setVar --name "${ToEmail}" --value "[${email}]"
+httpRequest --verb "Post" --url "http://localhost:7800/dummyhealthcareops/v1/searchPatientProfile?phnNo=${phnNumber}" --formatter "Json" --source "{}" --cookiecontainer  --noproxy  searchResult=value
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Successfully called the search patient profile API." --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+webStart --name "${chromeInstance}" --type "Chrome"
+if --left "${searchResult}" --operator "Equal_To" --right "[{\"PatientProfileRequest\":[]}]"
+	getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+	writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Need to Create Patient Profile using UI. Process started." --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+	goSub --label CreatePatientProfile
+endIf
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Started the Appointment booking from UI." --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+goSub --label CreateDocAppt
+webClose --name "${chromeInstance}" --leavebrowseropen 
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Sending Email." --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+openTextReader --share "None" --path "${myDesktop}\\IBM_RPA_Logs\\myCred.txt" --encoding "Default" myCred=value
+readTextToEnd --file ${myCred} botEmailPswd=value
+textFileClose --file ${myCred}
+imapConnect --mailhost "imap.gmail.com" --mailport 993 --usessl  --UseConnectionToSend  --smtpcredentials  --smtphost "smtp.gmail.com" --smtpport 587 --smtpusername "${botEmail}" --smtppassword "${botEmailPswd}" --smtpusessl  --username "${botEmail}" --mailusername "${botEmail}" --mailpassword "${botEmailPswd}" emailServerConnecttion=value
+onError --label "${errorHandlerSubRoutines}"
+emailSend --connection ${emailServerConnecttion} --to ${ToEmail} --from "${botEmail}" --subject "Doctor Appointmnet for ${patientName}" --bodytype "Text" --body "Congratulations ${patientName} !!!!\r\nYour appointmnet with ${doctor} is scheduled on ${date} at slot: ${slot}\r\n\r\nThanks & Regrards,\r\nXYZ Clinic"
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Appointment booked successfully. Log End !!!" --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+beginSub --name CreatePatientProfile
+webNavigate --url "http://localhost:8082/"
+webSet --value "${patientName}" --selector "CssSelector" --css "html > body > div:nth-child(4) > div > div > div:nth-child(2) > div > div > div > div > div:nth-child(2) > form > div > div:nth-child(1) > input" --simulatehuman  --comment Name
+webSet --value "${email}" --selector "Id" --id email --simulatehuman  --comment Email
+webSet --value "${phnNumber}" --selector "Id" --id phonenumber --simulatehuman  --comment Phone
+webSet --value "${dob}" --selector "CssSelector" --css "html > body > div:nth-child(4) > div > div > div:nth-child(2) > div > div > div > div > div:nth-child(2) > form > div > div:nth-child(4) > input" --simulatehuman  --comment Appoinment
+webClick --selector "CssSelector" --css "html > body > div:nth-child(4) > div > div > div:nth-child(2) > div > div > div > div > div:nth-child(2) > form > div > div:nth-child(6) > button" --simulatehuman  --comment "Create Profile"
+endSub
+beginSub --name CreateDocAppt
+webNavigate --url "http://localhost:8082/createDocAppt.html"
+webSet --value "${patientName}" --selector "Id" --id fullnameId --simulatehuman  --comment "Full Name"
+webSet --value "${email}" --selector "Id" --id emailId --simulatehuman  --comment Email
+webSet --value "${phnNumber}" --selector "Id" --id phoneId --simulatehuman  --comment "Phone No."
+webSet --value "${dob}" --selector "Id" --id dp1623953558167 --simulatehuman  --comment DOB
+webSet --value "${gender}" --selector "Id" --id field_gender --simulatehuman  --comment Gender
+webSet --value "${doctor}" --selector "Id" --id doctorId --simulatehuman  --comment Doctor
+webSet --value "${date}" --selector "Id" --id dateId --simulatehuman  --comment Date
+webSet --value "${slot}" --selector "Id" --id slotId --simulatehuman  --comment Slot
+webClick --selector "CssSelector" --css "html > body > div:nth-child(4) > div > div > div:nth-child(2) > div > div > div > div > div:nth-child(2) > form > div:nth-child(2) > div:nth-child(9) > button" --comment Submit
+endSub
+beginSub --name HandleError
+setVar --name "${successMsgAptCreated}" --value "Appointment creates Successfully. Confirmation mail not sent !!!"
+getCurrentDateAndTime --localorutc "LocalTime" currentDateAndTime=value
+writeToFile --value "${currentDateAndTime} - [ID:${UUID}] : Exception occured to send the mail. Details: \"Error line number: ${wdg:errorLineNumber};\\r\\nError contexto: ${wdg:errorSubName};\\r\\nError message: ${wdg:errorMessage}\"" --file "${myDesktop}\\IBM_RPA_Logs\\docApptDtls.txt" --encoding "UTF8" --writeasnewline 
+endSub
