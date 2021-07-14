@@ -19,4 +19,9 @@ DoctorAppointment_V3_WAL_Codes -> trigger the flow by Chatbot
 
 <b>Youtube Link: </b>https://www.youtube.com/watch?v=C7N9rBeYAZ0
 
-<b>Note: </b> To create static web page and to do some api routing, SpringBoot has been used. Dummy API created in IBM ACE and data we kept at shared memory to impletent the dummy APIs qucikly.
+
+---
+<b>Note: </b> 
+1. To create static web page and to do some api routing, SpringBoot has been used. </n>
+2. Dummy API created in IBM ACE and data we kept at shared memory to impletent the dummy APIs qucikly. </n>
+3. Used ngrok to expose our local endpoint to interner, so that Watson can access the endpoint.
